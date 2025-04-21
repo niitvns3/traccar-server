@@ -20,6 +20,7 @@ import com.google.inject.Injector;
 import com.google.inject.ProvisionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.traccar.api.resource.MyScheduler;
 import org.traccar.broadcast.BroadcastService;
 import org.traccar.schedule.ScheduleManager;
 import org.traccar.storage.DatabaseModule;
@@ -37,6 +38,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
+
+import org.traccar.api.resource.MyScheduler;
+
 public final class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -48,6 +54,7 @@ public final class Main {
     }
 
     private Main() {
+        
     }
 
     public static void logSystemInfo() {
@@ -76,11 +83,15 @@ public final class Main {
     }
 
     public static void main(String[] args) throws Exception {
+
         Locale.setDefault(Locale.ENGLISH);
+
+       
 
         final String configFile;
         if (args.length <= 0) {
             configFile = "./debug.xml";
+
             if (!new File(configFile).exists()) {
                 throw new RuntimeException("Configuration file is not provided");
             }
@@ -153,6 +164,38 @@ public final class Main {
             LOGGER.error("Main method error", unwrapped);
             System.exit(1);
         }
+
+
+
+        try
+        {
+             
+             Main.runschedulere();
+        }
+        catch(Exception e)
+        {
+
+        }
+
+    }
+
+
+    public static void runschedulere() throws SchedulerException {
+        JobDetail job = JobBuilder.newJob(MyScheduler.class)
+                .withIdentity("helloJob", "group1")
+                .build();
+
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("helloTrigger", "group1")
+                .startNow()
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInSeconds(5)
+                        .repeatForever())
+                .build();
+
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+        scheduler.scheduleJob(job, trigger);
     }
 
 }
